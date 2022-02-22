@@ -22,12 +22,29 @@ def gen_args(name : String, part_count : Int32) : String
     return args
 end
 
+# dependencies check
+tools = ["python2.7", "./ctrtool", "./makerom", "decrypt.py"]
+tools.each do |tool|
+    if !File.exists? %x[which #{tool}].chomp
+        case tool
+        when "python2.7"
+            abort "#{"Python 2.7".colorize.mode :bold} not found. Install it before continue"
+        when "decrypt.py"
+            if !File.exists? tool
+                abort "#{tool.colorize.mode :bold} not found. Make sure it's located in the #{"same directory".colorize.mode :underline}"
+            end
+        else
+            abort "#{tool.lchop("./").colorize.mode :bold} not found. Make sure it's located in the #{"same directory".colorize.mode :underline}"
+        end
+    end
+end
+
 Dir["*.cia"].each do |cia|
     if cia.includes? "decrypted"
         next
     end
 
-    puts "Decrypting: #{cia.colorize.mode(:bold)}..."
+    puts "Decrypting: #{cia.colorize.mode :bold}..."
     cutn : String = cia.chomp ".cia"
     args : String = ""
     content = %x[./ctrtool -tmd '#{cia}']
@@ -44,7 +61,7 @@ Dir["*.cia"].each do |cia|
         log.puts %x[./makerom -f cia -ignoresign -target p -o '#{cutn}-decfirst.cia' #{args}]
         
     elsif content.match /T.*D.*0004000E/
-        puts "CIA Type: #{"Patch".colorize.mode(:bold)}"
+        puts "CIA Type: #{"Patch".colorize.mode :bold}"
         log.puts %x[python2.7 decrypt.py '#{cia}']
 
         patch_parts : Int32 = Dir["#{cutn}.*.ncch"].size
@@ -54,7 +71,7 @@ Dir["*.cia"].each do |cia|
         check_decrypt("#{cutn} (Patch)", "cia")
 
     elsif content.match /T.*D.*0004008C/
-        puts "CIA Type: #{"DLC".colorize.mode(:bold)}"
+        puts "CIA Type: #{"DLC".colorize.mode :bold}"
         log.puts %x[python2.7 decrypt.py '#{cia}']
 
         dlc_parts : Int32 = Dir["#{cutn}.*.ncch"].size
