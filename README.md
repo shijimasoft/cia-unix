@@ -20,7 +20,7 @@ cia-unix/
 - [x] Decrypt .cia
   - [x] Games
   - [x] Patch and DLCs
-- [ ] Decrypt .3ds
+- [x] Decrypt .3ds
 - [ ] Rust 'decrypt.py' rewrite
 
 ## ⚡️ Build from source

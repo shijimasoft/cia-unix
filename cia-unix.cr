@@ -39,6 +39,47 @@ tools.each do |tool|
     end
 end
 
+args : String = ""
+
+# 3ds decrypting
+Dir["*.3ds"].each do |ds|
+    if ds.includes? "decrypted"
+        next
+    end
+    args = ""
+    i : UInt8 = 0
+    dsn : String = ds.chomp ".3ds"
+
+    puts "Decrypting: #{ds.colorize.mode :bold}..."
+    log.puts %x[python2.7 decrypt.py '#{ds}']
+
+    Dir["#{dsn}.*.ncch"].each do |ncch|
+        case ncch
+        when "#{dsn}.Main.ncch"
+            i = 0
+        when "#{dsn}.Manual.ncch"
+            i = 1
+        when "#{dsn}.DownloadPlay.ncch"
+            i = 2
+        when "#{dsn}.Partition4.ncch"
+            i = 3
+        when "#{dsn}.Partition5.ncch"
+            i = 4
+        when "#{dsn}.Partition6.ncch"
+            i = 5
+        when "#{dsn}.N3DSUpdateData.ncch"
+            i = 6
+        when "#{dsn}.UpdateData.ncch"
+            i = 7 
+        end
+        args += "-i '#{ncch}:#{i}:#{i}' "
+    end
+    puts "Building decrypted #{dsn} 3DS..."
+    log.puts %x[./makerom -f cci -ignoresign -target p -o '#{dsn}-decrypted.3ds' #{args}]
+    check_decrypt(dsn, "3ds")
+end
+
+# cia decrypting
 Dir["*.cia"].each do |cia|
     if cia.includes? "decrypted"
         next
@@ -46,9 +87,10 @@ Dir["*.cia"].each do |cia|
 
     puts "Decrypting: #{cia.colorize.mode :bold}..."
     cutn : String = cia.chomp ".cia"
-    args : String = ""
+    args = ""
     content = %x[./ctrtool -tmd '#{cia}']
 
+    # game
     if content.match /T.*D.*00040000/
         puts "CIA Type: Game"
         log.puts %x[python2.7 decrypt.py '#{cia}']
@@ -59,7 +101,7 @@ Dir["*.cia"].each do |cia|
             i += 1
         end
         log.puts %x[./makerom -f cia -ignoresign -target p -o '#{cutn}-decfirst.cia' #{args}]
-        
+    # patch
     elsif content.match /T.*D.*0004000E/
         puts "CIA Type: #{"Patch".colorize.mode :bold}"
         log.puts %x[python2.7 decrypt.py '#{cia}']
@@ -69,7 +111,7 @@ Dir["*.cia"].each do |cia|
 
         log.puts %x[./makerom -f cia -ignoresign -target p -o '#{cutn} (Patch)-decrypted.cia' #{args}]
         check_decrypt("#{cutn} (Patch)", "cia")
-
+    # dlc
     elsif content.match /T.*D.*0004008C/
         puts "CIA Type: #{"DLC".colorize.mode :bold}"
         log.puts %x[python2.7 decrypt.py '#{cia}']
