@@ -18,7 +18,6 @@ def gen_args(name : String, part_count : Int32) : String
             args += "-i '#{name}.#{partition}.ncch:#{partition}:#{partition}' "
         end
     end
-
     return args
 end
 
@@ -34,7 +33,12 @@ tools.each do |tool|
                 abort "#{tool.colorize.mode :bold} not found. Make sure it's located in the #{"same directory".colorize.mode :underline}"
             end
         else
-            abort "#{tool.lchop("./").colorize.mode :bold} not found. Make sure it's located in the #{"same directory".colorize.mode :underline}"
+            print "Some #{"tools".colorize.mode :bold} is missing, do you want to download them? (y/n): "
+            if ["y", "Y"].includes? gets.to_s
+                system "./dltools.sh"
+            else
+                abort "#{tool.lchop("./").colorize.mode :bold} not found. Make sure it's located in the #{"same directory".colorize.mode :underline}"
+            end
         end
     end
 end

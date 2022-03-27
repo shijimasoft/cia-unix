@@ -32,3 +32,5 @@ fi
 echo " * Cleaning up"
 rm -rf ctrtool-v0.7-*
 rm -rf makerom-v0.18-*
+
+chmod +x ctrtool makerom
