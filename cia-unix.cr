@@ -33,7 +33,7 @@ tools.each do |tool|
                 abort "#{tool.colorize.mode :bold} not found. Make sure it's located in the #{"same directory".colorize.mode :underline}"
             end
         else
-            print "Some #{"tools".colorize.mode :bold} is missing, do you want to download them? (y/n): "
+            print "Some #{"tools".colorize.mode :bold} are missing, do you want to download them? (y/n): "
             if ["y", "Y"].includes? gets.to_s
                 system "./dltools.sh"
             else
@@ -92,10 +92,10 @@ Dir["*.cia"].each do |cia|
     puts "Decrypting: #{cia.colorize.mode :bold}..."
     cutn : String = cia.chomp ".cia"
     args = ""
-    content = %x[./ctrtool -tmd '#{cia}']
+    content = %x[./ctrtool '#{cia}']
 
     # game
-    if content.match /T.*D.*00040000/
+    if content.match /T.*d.*00040000/
         puts "CIA Type: Game"
         log.puts %x[python2.7 decrypt.py '#{cia}']
         
@@ -106,7 +106,7 @@ Dir["*.cia"].each do |cia|
         end
         log.puts %x[./makerom -f cia -ignoresign -target p -o '#{cutn}-decfirst.cia' #{args}]
     # patch
-    elsif content.match /T.*D.*0004000E/
+    elsif content.match /T.*d.*0004000E/
         puts "CIA Type: #{"Patch".colorize.mode :bold}"
         log.puts %x[python2.7 decrypt.py '#{cia}']
 
@@ -116,7 +116,7 @@ Dir["*.cia"].each do |cia|
         log.puts %x[./makerom -f cia -ignoresign -target p -o '#{cutn} (Patch)-decrypted.cia' #{args}]
         check_decrypt("#{cutn} (Patch)", "cia")
     # dlc
-    elsif content.match /T.*D.*0004008C/
+    elsif content.match /T.*d.*0004008C/
         puts "CIA Type: #{"DLC".colorize.mode :bold}"
         log.puts %x[python2.7 decrypt.py '#{cia}']
 
@@ -139,7 +139,9 @@ Dir["*-decfirst.cia"].each do |decfirst|
 end
 
 # cleanup
+puts "Removing cache..."
 Dir["*-decfirst.cia"].each do |fname| File.delete(fname) end
 Dir["*.ncch"].each do |fname| File.delete(fname) end
 
 log.close
+puts "Log saved"
