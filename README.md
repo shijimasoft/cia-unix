@@ -4,7 +4,7 @@
 
 #### Requirements
 * Python 2.7
-* PyCrypto
+* [PyCrypto](https://pypi.org/project/pycrypto/)
 
 ```
 cia-unix/
