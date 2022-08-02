@@ -29,8 +29,15 @@ elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     mv makerom-v0.18.3-ubuntu_x86_64/makerom "$SCRIPT_DIR/makerom"
 fi
 
+if [[ ! -f "decrypt.py" ]]; then
+    echo " * Downloading ${BOLD}decrypt.py${NORMAL}"
+    wget https://raw.githubusercontent.com/shijimasoft/cia-unix/main/decrypt.py -q
+fi
+
 echo " * Cleaning up"
 rm -rf ctrtool-v1.1.0-*
 rm -rf makerom-v0.18.3-*
 
 chmod +x ctrtool makerom
+
+echo
