@@ -27,12 +27,12 @@ tools.each do |tool|
     if !File.exists? %x[which #{tool}].chomp
         case tool
         when "python2.7"
-            print "#{"Python 2.7".colorize.mode :bold} not found. Install it before continue"
+            puts "#{"Python 2.7".colorize.mode :bold} not found. Install it before continue"
             abort "https://www.python.org/download/releases/2.7/"
         when "decrypt.py"
             abort "#{tool.colorize.mode :bold} not found. Make sure it's located in the #{"same directory".colorize.mode :underline}" if !File.exists? tool
         else
-            print "Some #{"tools".colorize.mode :bold} are missing, do you want to download them? (y/n): "
+            puts "Some #{"tools".colorize.mode :bold} are missing, do you want to download them? (y/n): "
             if ["y", "Y"].includes? gets.to_s
                 system "./dltools.sh"
             else
