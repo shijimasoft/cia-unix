@@ -3,7 +3,7 @@
 *Decrypt CIA roms in UNIX environments* 🪐
 
 #### Requirements
-* [Python 2.7](https://www.python.org/download/releases/2.7/)
+* [Python 2.7](https://www.python.org/downloads/release/python-2718/)
 * [PyCrypto](https://pypi.org/project/pycrypto/) 
   * `pip install pycrypto` or `easy_install pycrypto`
 
