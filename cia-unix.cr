@@ -3,6 +3,36 @@ require "colorize"
 log : File = File.open "log.txt", "w"
 log.puts Time.utc.to_s
 
+# dependencies check
+tools = ["python2.7", "./ctrtool", "./makerom", "decrypt.py"]
+tools.each do |tool|
+    if !File.exists? %x[which #{tool}].chomp
+        case tool
+        when "python2.7"
+            log.delete if File.exists? "log.txt"
+            puts "#{"Python 2.7".colorize.mode(:bold)} not found. Install it before continue"
+            abort "https://www.python.org/download/releases/2.7/"
+        when "decrypt.py"
+            log.delete if File.exists? "log.txt"
+            abort "#{tool.colorize.mode(:bold)} not found. Make sure it's located in the #{"same directory".colorize.mode(:underline)}" if !File.exists? tool
+        else
+            print "Some #{"tools".colorize.mode(:bold)} are missing, do you want to download them? (y/n): "
+            if ["y", "Y"].includes? gets.to_s
+                system "./dltools.sh"
+            else
+                log.delete if File.exists? "log.txt"
+                abort "#{tool.lchop("./").colorize.mode(:bold)} not found. Make sure it's located in the #{"same directory".colorize.mode(:underline)}"
+            end
+        end
+    end
+end
+
+# roms presence check
+if Dir["*.cia"].size.zero? && Dir["*.3ds"].size.zero?
+    log.delete if File.exists? "log.txt"
+    abort "No #{"CIA".colorize.mode(:bold)}/#{"3DS".colorize.mode(:bold)} roms were found."
+end
+
 def check_decrypt(name : String, ext : String)
     if File.exists? "#{name}-decrypted.#{ext}"
         puts "Decryption completed\n".colorize.mode(:underline)
@@ -21,39 +51,17 @@ def gen_args(name : String, part_count : Int32) : String
     return args
 end
 
-# dependencies check
-tools = ["python2.7", "./ctrtool", "./makerom", "decrypt.py"]
-tools.each do |tool|
-    if !File.exists? %x[which #{tool}].chomp
-        case tool
-        when "python2.7"
-            puts "#{"Python 2.7".colorize.mode :bold} not found. Install it before continue"
-            abort "https://www.python.org/download/releases/2.7/"
-        when "decrypt.py"
-            abort "#{tool.colorize.mode :bold} not found. Make sure it's located in the #{"same directory".colorize.mode :underline}" if !File.exists? tool
-        else
-            puts "Some #{"tools".colorize.mode :bold} are missing, do you want to download them? (y/n): "
-            if ["y", "Y"].includes? gets.to_s
-                system "./dltools.sh"
-            else
-                abort "#{tool.lchop("./").colorize.mode :bold} not found. Make sure it's located in the #{"same directory".colorize.mode :underline}"
-            end
-        end
-    end
-end
-
 args : String = ""
 
 # 3ds decrypting
 Dir["*.3ds"].each do |ds|
-    if ds.includes? "decrypted"
-        next
-    end
+    next if ds.includes? "decrypted"
+
     args = ""
     i : UInt8 = 0
     dsn : String = ds.chomp ".3ds"
 
-    puts "Decrypting: #{ds.colorize.mode :bold}..."
+    puts "Decrypting: #{ds.colorize.mode(:bold)}..."
     log.puts %x[python2.7 decrypt.py '#{ds}']
 
     Dir["#{dsn}.*.ncch"].each do |ncch|
@@ -84,11 +92,9 @@ end
 
 # cia decrypting
 Dir["*.cia"].each do |cia|
-    if cia.includes? "decrypted"
-        next
-    end
+    next if cia.includes? "decrypted"
 
-    puts "Decrypting: #{cia.colorize.mode :bold}..."
+    puts "Decrypting: #{cia.colorize.mode(:bold)}..."
     cutn : String = cia.chomp ".cia"
     args = ""
     content = %x[./ctrtool '#{cia}']
@@ -106,7 +112,7 @@ Dir["*.cia"].each do |cia|
         log.puts %x[./makerom -f cia -ignoresign -target p -o '#{cutn}-decfirst.cia' #{args}]
     # patch
     elsif content.match /T.*d.*0004000E/
-        puts "CIA Type: #{"Patch".colorize.mode :bold}"
+        puts "CIA Type: #{"Patch".colorize.mode(:bold)}"
         log.puts %x[python2.7 decrypt.py '#{cia}']
 
         patch_parts : Int32 = Dir["#{cutn}.*.ncch"].size
@@ -116,7 +122,7 @@ Dir["*.cia"].each do |cia|
         check_decrypt("#{cutn} (Patch)", "cia")
     # dlc
     elsif content.match /T.*d.*0004008C/
-        puts "CIA Type: #{"DLC".colorize.mode :bold}"
+        puts "CIA Type: #{"DLC".colorize.mode(:bold)}"
         log.puts %x[python2.7 decrypt.py '#{cia}']
 
         dlc_parts : Int32 = Dir["#{cutn}.*.ncch"].size
