@@ -171,7 +171,7 @@ def from_bytes(data, endianess="big"):
 
 def to_bytes(n, length, endianess="big"):
     h = "%x" % n
-    s = ("0" * (len(h) % 2) + h).zfill(length * 2).decode("hex")
+    s = ("0" * (len(h) % 2) + h).zfill(length * 2).encode()
     if endianess == "big":
         return s
     return s[::-1]
@@ -194,20 +194,20 @@ def reverseCtypeArray(ctypeArray):
     return ("").join("%02X" % x for x in ctypeArray[::-1])
 
 
-def getNcchAesCounter(header, type):
+def getNcchAesCounter(header, t):
     counter = bytearray(
-        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
     if header.formatVersion == 2 or header.formatVersion == 0:
         counter[:8] = bytearray(header.titleId[::-1])
-        counter[8:9] = chr(type)
+        counter[8:9] = chr(t).encode()
     elif header.formatVersion == 1:
         x = 0
-        if type == ncchSection.exheader:
+        if t == ncchSection.exheader:
             x = 512
-        if type == ncchSection.exefs:
+        if t == ncchSection.exefs:
             x = header.exefsOffset * mediaUnitSize
-        if type == ncchSection.romfs:
+        if t == ncchSection.romfs:
             x = header.romfsOffset * mediaUnitSize
         counter[:8] = bytearray(header.titleId)
         for i in range(4):
@@ -265,7 +265,7 @@ def parseCIA(fh):
     fh.seek(0)
     (
         headerSize,
-        type,
+        t,
         version,
         cachainSize,
         tikSize,
@@ -387,7 +387,7 @@ def parseNCCH(fh, fsize, offs=0, idx=0, titleId="", standAlone=1, fromNcsd=0):
     with open(base, "wb") as (f):
         fh.seek(offs)
         tmp = fh.read(512)
-        tmp = tmp[:399] + chr(ord(tmp[399]) & 2 | 4) + tmp[400:]
+        tmp = tmp[:399] + chr(tmp[399] & 2 | 4).encode() + tmp[400:]
         f.write(tmp)
         if header.exhdrSize != 0:
             counter = getNcchAesCounter(header, ncchSection.exheader)
@@ -435,13 +435,13 @@ def parseNCCH(fh, fsize, offs=0, idx=0, titleId="", standAlone=1, fromNcsd=0):
 
 
 def dumpSection(
-    f, fh, offset, size, type, ctr, usesExtraCrypto, fixedCrypto, encrypted, keyYs
+    f, fh, offset, size, t, ctr, usesExtraCrypto, fixedCrypto, encrypted, keyYs
 ):
     cryptoKeys = {0: 0, 1: 1, 10: 2, 11: 3}
     sections = ["ExHeader", "ExeFS", "RomFS"]
-    print((tab + "%s offset:  %08X" % (sections[(type - 1)], offset)))
-    print((tab + "%s counter: %s" % (sections[(type - 1)], hexlify(ctr))))
-    print((tab + "%s size: %d bytes" % (sections[(type - 1)], size)))
+    print((tab + "%s offset:  %08X" % (sections[(t - 1)], offset)))
+    print((tab + "%s counter: %s" % (sections[(t - 1)], hexlify(ctr))))
+    print((tab + "%s size: %d bytes" % (sections[(t - 1)], size)))
     tmp = offset - f.tell()
     if tmp > 0:
         f.write(fh.read(tmp))
@@ -455,7 +455,7 @@ def dumpSection(
             f.write(fh.read(sizeleft))
         return
     key0x2C = to_bytes(scramblekey(keys[0][0], keyYs[0]), 16, "big")
-    if type == ncchSection.exheader:
+    if t == ncchSection.exheader:
         key = key0x2C
         if fixedCrypto:
             key = to_bytes(keys[1][(fixedCrypto - 1)], 16, "big")
@@ -465,7 +465,7 @@ def dumpSection(
             counter=Counter.new(128, initial_value=from_bytes(ctr, "big")),
         )
         f.write(cipher.decrypt(fh.read(size)))
-    if type == ncchSection.exefs:
+    if t == ncchSection.exefs:
         key = key0x2C
         if fixedCrypto:
             key = to_bytes(keys[1][(fixedCrypto - 1)], 16, "big")
@@ -490,13 +490,13 @@ def dumpSection(
             for i in range(10):
                 fname, off, size = struct.unpack("<8sII", exetmp[i * 16 : (i + 1) * 16])
                 off += 512
-                if fname.strip("\x00") not in ("icon", "banner"):
+                if fname.strip(b"\x00") not in ("icon", "banner"):
                     exetmp = (
                         exetmp[:off] + exetmp2[off : off + size] + exetmp[off + size :]
                     )
 
         f.write(exetmp)
-    if type == ncchSection.romfs:
+    if t == ncchSection.romfs:
         key = to_bytes(
             scramblekey(keys[0][cryptoKeys[usesExtraCrypto]], keyYs[1]), 16, "big"
         )
