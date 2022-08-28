@@ -4,14 +4,14 @@ log : File = File.open "log.txt", "w"
 log.puts Time.utc.to_s
 
 # dependencies check
-tools = ["python2.7", "./ctrtool", "./makerom", "decrypt.py"]
+tools = ["python3", "./ctrtool", "./makerom", "decrypt.py"]
 tools.each do |tool|
     if !File.exists? %x[which #{tool}].chomp
         case tool
-        when "python2.7"
+        when "python3"
             log.delete if File.exists? "log.txt"
-            puts "#{"Python 2.7".colorize.mode(:bold)} not found. Install it before continue"
-            abort "https://www.python.org/download/releases/2.7/"
+            puts "#{"Python 3.5 >=".colorize.mode(:bold)} not found. Install it before continue"
+            abort "https://www.python.org/downloads/"
         when "decrypt.py"
             log.delete if File.exists? "log.txt"
             abort "#{tool.colorize.mode(:bold)} not found. Make sure it's located in the #{"same directory".colorize.mode(:underline)}" if !File.exists? tool
@@ -62,7 +62,7 @@ Dir["*.3ds"].each do |ds|
     dsn : String = ds.chomp ".3ds"
 
     puts "Decrypting: #{ds.colorize.mode(:bold)}..."
-    log.puts %x[python2.7 decrypt.py '#{ds}']
+    log.puts %x[python3 decrypt.py '#{ds}']
 
     Dir["#{dsn}.*.ncch"].each do |ncch|
         case ncch
@@ -102,7 +102,7 @@ Dir["*.cia"].each do |cia|
     # game
     if content.match /T.*d.*00040000/
         puts "CIA Type: Game"
-        log.puts %x[python2.7 decrypt.py '#{cia}']
+        log.puts %x[python3 decrypt.py '#{cia}']
         
         i : UInt8 = 0
         Dir["*.ncch"].each do |ncch|
@@ -113,7 +113,7 @@ Dir["*.cia"].each do |cia|
     # patch
     elsif content.match /T.*d.*0004000E/
         puts "CIA Type: #{"Patch".colorize.mode(:bold)}"
-        log.puts %x[python2.7 decrypt.py '#{cia}']
+        log.puts %x[python3 decrypt.py '#{cia}']
 
         patch_parts : Int32 = Dir["#{cutn}.*.ncch"].size
         args = gen_args(cutn, patch_parts)
@@ -123,7 +123,7 @@ Dir["*.cia"].each do |cia|
     # dlc
     elsif content.match /T.*d.*0004008C/
         puts "CIA Type: #{"DLC".colorize.mode(:bold)}"
-        log.puts %x[python2.7 decrypt.py '#{cia}']
+        log.puts %x[python3 decrypt.py '#{cia}']
 
         dlc_parts : Int32 = Dir["#{cutn}.*.ncch"].size
         args = gen_args(cutn, dlc_parts)

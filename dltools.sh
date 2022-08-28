@@ -34,7 +34,7 @@ fi
 
 if [[ ! -f "decrypt.py" ]]; then
     echo " * Downloading ${BOLD}decrypt.py${NORMAL}"
-    wget https://raw.githubusercontent.com/shijimasoft/cia-unix/main/decrypt.py -q
+    wget https://raw.githubusercontent.com/shijimasoft/cia-unix/experimental/decrypt.py -q
 fi
 
 echo " * Cleaning up"

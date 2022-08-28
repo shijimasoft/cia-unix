@@ -3,9 +3,13 @@
 *Decrypt CIA roms in UNIX environments* 🪐
 
 #### Requirements
-* [Python 2.7](https://www.python.org/downloads/release/python-2718/)
-* [PyCrypto](https://pypi.org/project/pycrypto/) 
-  * `pip install pycrypto` or `easy_install pycrypto`
+* [Python 3](https://www.python.org/downloads/)
+* [PyCryptodome]() 
+  * `pip3 install pycryptodome`
+
+
+> **Warning**
+> This `cia-unix` version is under development, and it may not work.
 
 ```
 cia-unix/
@@ -15,6 +19,7 @@ cia-unix/
 ├─ makerom
 └─ Encrypted Game.cia
 ```
+
 **ctrtool**, **makerom** and **decrypt.py** can be downloaded with `dltools.sh`
 
 ## 📋 Roadmap
@@ -27,7 +32,7 @@ cia-unix/
 ## ⚡️ Build from source
 You’ll need the [Crystal compiler](https://crystal-lang.org/install/)
 
-```
+```sh
 crystal build cia-unix.cr --release --no-debug
 ```
 
