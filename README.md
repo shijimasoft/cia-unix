@@ -2,14 +2,13 @@
 
 *Decrypt CIA roms in UNIX environments* 🪐
 
-#### Requirements
-* [Python 3](https://www.python.org/downloads/)
-* [PyCryptodome]() 
-  * `pip3 install pycryptodome`
-
-
 > **Warning**
 > This `cia-unix` version is under development, and it may not work.
+
+#### Requirements
+* [Python 3](https://www.python.org/downloads/)
+* [PyCryptodome](https://pypi.org/project/pycryptodome/) 
+  * `pip3 install pycryptodome`
 
 ```
 cia-unix/
