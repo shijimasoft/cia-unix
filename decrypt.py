@@ -120,32 +120,28 @@ class ciaReader:
         self.cipher = AES.new(
             titkey,
             AES.MODE_CBC,
-            to_bytes(cIdx, 2, "big")
-            + "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+            to_bytes(cIdx, 2, "big") + bytes(12),
         )
 
     def seek(self, offs):
         if offs == 0:
             self.fhandle.seek(self.contentOff)
-            self.cipher.IV = (
-                to_bytes(self.cIdx, 2, "big")
-                + "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-            )
+            self.cipher.IV = (to_bytes(self.cIdx, 2, "big") + bytes(12))
         else:
             self.fhandle.seek(self.contentOff + offs - 16)
             self.cipher.IV = self.fhandle.read(16)
 
-    def read(self, bytes):
-        if bytes == 0:
+    def read(self, nbytes):
+        if nbytes == 0:
             return ""
-        data = self.fhandle.read(bytes)
+        data = self.fhandle.read(nbytes)
         if self.encrypted:
             data = self.cipher.decrypt(data)
         return data
 
 
 def from_bytes(data, endianess="big"):
-    if isinstance(data, str):
+    if type(data) == str:
         data = bytearray(data)
     if endianess == "big":
         data = reversed(data)
@@ -182,9 +178,7 @@ def reverseCtypeArray(ctypeArray):
 
 
 def getNcchAesCounter(header, t):
-    counter = bytearray(
-        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-    )
+    counter = bytearray(16)
     if header.formatVersion == 2 or header.formatVersion == 0:
         counter[:8] = bytearray(header.titleId[::-1])
         counter[8:9] = chr(t).encode()
@@ -231,13 +225,12 @@ def getNewkeyY(keyY, header, titleId):
 
     if titleId in seeds:
         seedcheck = struct.unpack(">I", header.seedcheck)[0]
-        if (
-            int(sha256(seeds[titleId] + unhexlify(titleId)[::-1]).hexdigest()[:8], 16)
-            == seedcheck
-        ):
+
+        if (int(sha256(seeds[titleId] + unhexlify(titleId)[::-1]).hexdigest()[:8], 16) == seedcheck):
             keystr = sha256(to_bytes(keyY, 16, "big") + seeds[titleId]).hexdigest()[:32]
             newkeyY = unhexlify(keystr)
             return from_bytes(newkeyY, "big")
+
         raise SeedError("Seed check fail, wrong seed?")
     raise SeedError("Something Happened :/")
 
@@ -269,7 +262,7 @@ def parseCIA(fh):
     enckey = fh.read(16)
     fh.seek(tikOff + 156 + 320)
     tid = fh.read(8)
-    if hexlify(tid)[:5] == "00048":
+    if hexlify(tid)[:5] == b"00048":
         print("Unsupported CIA file")
         return
     fh.seek(tikOff + 177 + 320)
@@ -277,7 +270,7 @@ def parseCIA(fh):
     titkey = AES.new(
         cmnkeys[cmnkeyidx],
         AES.MODE_CBC,
-        tid + "\x00\x00\x00\x00\x00\x00\x00\x00",
+        tid + bytes(8),
     ).decrypt(enckey)
     fh.seek(tmdOff + 518)
     contentCount = struct.unpack(">H", fh.read(2))[0]
@@ -293,12 +286,11 @@ def parseCIA(fh):
             test = AES.new(
                 titkey,
                 AES.MODE_CBC,
-                to_bytes(cIdx, 2, "big")
-                + "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+                to_bytes(cIdx, 2, "big") + bytes(12),
             ).decrypt(fh.read(512))
         else:
             test = fh.read(512)
-        if not test[256:260] == "NCCH":
+        if not test[256:260] == b"NCCH":
             print("  Problem parsing CIA content, skipping. Sorry about that :/\n")
             continue
         fh.seek(contentOffs + nextContentOffs)
@@ -341,7 +333,7 @@ def parseNCCH(fh, fsize, offs=0, idx=0, titleId="", standAlone=1, fromNcsd=0):
     if titleId == "":
         titleId = reverseCtypeArray(header.programId)
     ncchKeyY = from_bytes(header.signature[:16], "big")
-    print((tab + "Product code: " + str(bytearray(header.productCode)).rstrip("\x00")))
+    print((tab + "Product code: " + bytearray(header.productCode).decode().rstrip("\x00")))
     print((tab + "KeyY: %032X" % ncchKeyY))
     print((tab + "Title ID: %s" % reverseCtypeArray(header.titleId)))
     print((tab + "Format version: %d" % header.formatVersion))
@@ -421,9 +413,7 @@ def parseNCCH(fh, fsize, offs=0, idx=0, titleId="", standAlone=1, fromNcsd=0):
     print("")
 
 
-def dumpSection(
-    f, fh, offset, size, t, ctr, usesExtraCrypto, fixedCrypto, encrypted, keyYs
-):
+def dumpSection(f, fh, offset, size, t, ctr, usesExtraCrypto, fixedCrypto, encrypted, keyYs):
     cryptoKeys = {0: 0, 1: 1, 10: 2, 11: 3}
     sections = ["ExHeader", "ExeFS", "RomFS"]
     print((tab + "%s offset:  %08X" % (sections[(t - 1)], offset)))
@@ -525,6 +515,7 @@ for file in existFiles:
     with open(file, "rb") as (fh):
         fh.seek(256)
         magic = fh.read(4)
+
         if magic == b"NCSD":
             result = parseNCSD(fh)
             print("")
@@ -534,7 +525,7 @@ for file in existFiles:
             print("")
         elif fh.name.split(".")[(-1)].lower() == "cia":
             fh.seek(0)
-            if fh.read(4) == "  \x00\x00":
+            if fh.read(4) == b"  \x00\x00":
                 parseCIA(fh)
                 print("")
 
