@@ -1,4 +1,4 @@
-import os, sys, glob, struct
+import os, sys, struct
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
 from hashlib import sha256
@@ -496,22 +496,9 @@ def dumpSection(f, fh, offset, size, t, ctr, usesExtraCrypto, fixedCrypto, encry
 if len(sys.argv) < 2:
     print("usage: decrypt.py *file*")
     sys.exit()
-inpFiles = []
-existFiles = []
 
-for i in range(len(sys.argv) - 1):
-    inpFiles = inpFiles + glob.glob(sys.argv[(i + 1)].replace("[", "[[]"))
-
-for i in range(len(inpFiles)):
-    if os.path.isfile(inpFiles[i]):
-        existFiles.append(inpFiles[i])
-
-if existFiles == []:
-    print("Input files don't exist")
-    sys.exit()
-
-print("")
-for file in existFiles:
+if os.path.exists(sys.argv[1]):
+    file = sys.argv[1] 
     with open(file, "rb") as (fh):
         fh.seek(256)
         magic = fh.read(4)
@@ -523,10 +510,13 @@ for file in existFiles:
             fh.seek(0, 2)
             result = parseNCCH(fh, fh.tell())
             print("")
-        elif fh.name.split(".")[(-1)].lower() == "cia":
+        elif fh.name.lower().endswith(".cia"):
             fh.seek(0)
             if fh.read(4) == b"  \x00\x00":
                 parseCIA(fh)
                 print("")
+else:
+    print("Input file does not exist")
+    sys.exit()
 
 print("Partitions extracted")
