@@ -120,13 +120,13 @@ class ciaReader:
         self.cipher = AES.new(
             titkey,
             AES.MODE_CBC,
-            to_bytes(cIdx, 2, "big") + bytes(12),
+            to_bytes(cIdx, 2) + bytes(12),
         )
 
     def seek(self, offs):
         if offs == 0:
             self.fhandle.seek(self.contentOff)
-            self.cipher.IV = (to_bytes(self.cIdx, 2, "big") + bytes(12))
+            self.cipher.IV = (to_bytes(self.cIdx, 2) + bytes(12))
         else:
             self.fhandle.seek(self.contentOff + offs - 16)
             self.cipher.IV = self.fhandle.read(16)
@@ -140,11 +140,10 @@ class ciaReader:
         return data
 
 
-def from_bytes(data, endianess="big"):
+def from_bytes(data):
     if type(data) == str:
         data = bytearray(data)
-    if endianess == "big":
-        data = reversed(data)
+    data = reversed(data)
     num = 0
     for offset, byte in enumerate(data):
         num += byte << offset * 8
@@ -152,12 +151,10 @@ def from_bytes(data, endianess="big"):
     return num
 
 
-def to_bytes(n, length, endianess="big"):
+def to_bytes(n, length):
     h = "%x" % n
     s = ("0" * (len(h) % 2) + h).zfill(length * 2).encode()
-    if endianess == "big":
-        return s
-    return s[::-1]
+    return s
 
 
 def scramblekey(keyX, keyY):
@@ -227,9 +224,9 @@ def getNewkeyY(keyY, header, titleId):
         seedcheck = struct.unpack(">I", header.seedcheck)[0]
 
         if (int(sha256(seeds[titleId] + unhexlify(titleId)[::-1]).hexdigest()[:8], 16) == seedcheck):
-            keystr = sha256(to_bytes(keyY, 16, "big") + seeds[titleId]).hexdigest()[:32]
+            keystr = sha256(to_bytes(keyY, 16) + seeds[titleId]).hexdigest()[:32]
             newkeyY = unhexlify(keystr)
-            return from_bytes(newkeyY, "big")
+            return from_bytes(newkeyY)
 
         raise SeedError("Seed check fail, wrong seed?")
     raise SeedError("Something Happened :/")
@@ -286,7 +283,7 @@ def parseCIA(fh):
             test = AES.new(
                 titkey,
                 AES.MODE_CBC,
-                to_bytes(cIdx, 2, "big") + bytes(12),
+                to_bytes(cIdx, 2) + bytes(12),
             ).decrypt(fh.read(512))
         else:
             test = fh.read(512)
@@ -332,7 +329,7 @@ def parseNCCH(fh, fsize, offs=0, idx=0, titleId="", standAlone=1, fromNcsd=0):
     header = ncchHdr(tmp)
     if titleId == "":
         titleId = reverseCtypeArray(header.programId)
-    ncchKeyY = from_bytes(header.signature[:16], "big")
+    ncchKeyY = from_bytes(header.signature[:16])
     print((tab + "Product code: " + bytearray(header.productCode).decode().rstrip("\x00")))
     print((tab + "KeyY: %032X" % ncchKeyY))
     print((tab + "Title ID: %s" % reverseCtypeArray(header.titleId)))
@@ -431,37 +428,33 @@ def dumpSection(f, fh, offset, size, t, ctr, usesExtraCrypto, fixedCrypto, encry
         if sizeleft > 0:
             f.write(fh.read(sizeleft))
         return
-    key0x2C = to_bytes(scramblekey(keys[0][0], keyYs[0]), 16, "big")
+    key0x2C = to_bytes(scramblekey(keys[0][0], keyYs[0]), 16)
     if t == ncchSection.exheader:
         key = key0x2C
         if fixedCrypto:
-            key = to_bytes(keys[1][(fixedCrypto - 1)], 16, "big")
+            key = to_bytes(keys[1][(fixedCrypto - 1)], 16)
         cipher = AES.new(
             key,
             AES.MODE_CTR,
-            counter=Counter.new(128, initial_value=from_bytes(ctr, "big")),
+            counter=Counter.new(128, initial_value=from_bytes(ctr)),
         )
         f.write(cipher.decrypt(fh.read(size)))
     if t == ncchSection.exefs:
         key = key0x2C
         if fixedCrypto:
-            key = to_bytes(keys[1][(fixedCrypto - 1)], 16, "big")
+            key = to_bytes(keys[1][(fixedCrypto - 1)], 16)
         cipher = AES.new(
             key,
             AES.MODE_CTR,
-            counter=Counter.new(128, initial_value=from_bytes(ctr, "big")),
+            counter=Counter.new(128, initial_value=from_bytes(ctr)),
         )
         exedata = fh.read(size)
         exetmp = cipher.decrypt(exedata)
         if usesExtraCrypto:
             extraCipher = AES.new(
-                to_bytes(
-                    scramblekey(keys[0][cryptoKeys[usesExtraCrypto]], keyYs[1]),
-                    16,
-                    "big",
-                ),
+                to_bytes(scramblekey(keys[0][cryptoKeys[usesExtraCrypto]], keyYs[1]), 16),
                 AES.MODE_CTR,
-                counter=Counter.new(128, initial_value=from_bytes(ctr, "big")),
+                counter=Counter.new(128, initial_value=from_bytes(ctr)),
             )
             exetmp2 = extraCipher.decrypt(exedata)
             for i in range(10):
@@ -474,15 +467,13 @@ def dumpSection(f, fh, offset, size, t, ctr, usesExtraCrypto, fixedCrypto, encry
 
         f.write(exetmp)
     if t == ncchSection.romfs:
-        key = to_bytes(
-            scramblekey(keys[0][cryptoKeys[usesExtraCrypto]], keyYs[1]), 16, "big"
-        )
+        key = to_bytes(scramblekey(keys[0][cryptoKeys[usesExtraCrypto]], keyYs[1]), 16)
         if fixedCrypto:
-            key = to_bytes(keys[1][(fixedCrypto - 1)], 16, "big")
+            key = to_bytes(keys[1][(fixedCrypto - 1)], 16)
         cipher = AES.new(
             key,
             AES.MODE_CTR,
-            counter=Counter.new(128, initial_value=from_bytes(ctr, "big")),
+            counter=Counter.new(128, initial_value=from_bytes(ctr)),
         )
         sizeleft = size
         while sizeleft > 4194304:
