@@ -7,6 +7,9 @@
 * [PyCrypto](https://pypi.org/project/pycrypto/) 
   * `pip install pycrypto` or `easy_install pycrypto`
 
+> **Note**
+> A new Python 3 (unstable) version has been released, you can find the experimental code [here](https://github.com/shijimasoft/cia-unix/tree/experimental).
+
 ```
 cia-unix/
 ├─ cia-unix
