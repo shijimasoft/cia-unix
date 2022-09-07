@@ -13,8 +13,10 @@ tools.each do |tool|
             puts "#{"Python 3.5 >=".colorize.mode(:bold)} not found. Install it before continue"
             abort "https://www.python.org/downloads/"
         when "decrypt.py"
-            log.delete if File.exists? "cia-unix.log"
-            abort "#{tool.colorize.mode(:bold)} not found. Make sure it's located in the #{"same directory".colorize.mode(:underline)}" if !File.exists? tool
+            if !File.exists? "decrypt.py"
+                log.delete if File.exists? "cia-unix.log"
+                abort "#{tool.colorize.mode(:bold)} not found. Make sure it's located in the #{"same directory".colorize.mode(:underline)}" if !File.exists? tool
+            end
         else
             print "Some #{"tools".colorize.mode(:bold)} are missing, do you want to download them? (y/n): "
             if ["y", "Y"].includes? gets.to_s
