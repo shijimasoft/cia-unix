@@ -1,6 +1,6 @@
 require "colorize"
 
-log : File = File.open "log.txt", "w"
+log : File = File.new "cia-unix.log", "w"
 log.puts Time.utc.to_s
 
 # dependencies check
@@ -9,18 +9,20 @@ tools.each do |tool|
     if !File.exists? %x[which #{tool}].chomp
         case tool
         when "python2.7"
-            log.delete if File.exists? "log.txt"
+            log.delete if File.exists? "cia-unix.log"
             puts "#{"Python 2.7".colorize.mode(:bold)} not found. Install it before continue"
             abort "https://www.python.org/download/releases/2.7/"
         when "decrypt.py"
-            log.delete if File.exists? "log.txt"
-            abort "#{tool.colorize.mode(:bold)} not found. Make sure it's located in the #{"same directory".colorize.mode(:underline)}" if !File.exists? tool
+            if !File.exists? "decrypt.py"
+                log.delete if File.exists? "cia-unix.log"
+                abort "#{tool.colorize.mode(:bold)} not found. Make sure it's located in the #{"same directory".colorize.mode(:underline)}" if !File.exists? tool
+            end
         else
             print "Some #{"tools".colorize.mode(:bold)} are missing, do you want to download them? (y/n): "
             if ["y", "Y"].includes? gets.to_s
                 system "./dltools.sh"
             else
-                log.delete if File.exists? "log.txt"
+                log.delete if File.exists? "cia-unix.log"
                 abort "#{tool.lchop("./").colorize.mode(:bold)} not found. Make sure it's located in the #{"same directory".colorize.mode(:underline)}"
             end
         end
@@ -29,7 +31,7 @@ end
 
 # roms presence check
 if Dir["*.cia"].size.zero? && Dir["*.3ds"].size.zero?
-    log.delete if File.exists? "log.txt"
+    log.delete if File.exists? "cia-unix.log"
     abort "No #{"CIA".colorize.mode(:bold)}/#{"3DS".colorize.mode(:bold)} roms were found."
 end
 
@@ -148,5 +150,6 @@ puts "Removing cache..."
 Dir["*-decfirst.cia"].each do |fname| File.delete(fname) end
 Dir["*.ncch"].each do |fname| File.delete(fname) end
 
+log.flush
 log.close
 puts "Log saved"
