@@ -53,6 +53,13 @@ def gen_args(name : String, part_count : Int32) : String
     return args
 end
 
+# cache cleanup
+def remove_cache
+    puts "Removing cache..."
+    Dir["*-decfirst.cia"].each do |fname| File.delete(fname) end
+    Dir["*.ncch"].each do |fname| File.delete(fname) end
+end
+
 args : String = ""
 
 # 3ds decrypting
@@ -90,6 +97,7 @@ Dir["*.3ds"].each do |ds|
     puts "Building decrypted #{dsn} 3DS..."
     log.puts %x[./makerom -f cci -ignoresign -target p -o '#{dsn}-decrypted.3ds' #{args}]
     check_decrypt(dsn, "3ds")
+    remove_cache
 end
 
 # cia decrypting
@@ -135,20 +143,17 @@ Dir["*.cia"].each do |cia|
     else
         abort "Unsupported CIA"
     end
+
+    Dir["*-decfirst.cia"].each do |decfirst|
+        cutn = decfirst.chomp "-decfirst.cia"
+    
+        puts "Building decrypted #{cutn} CCI..."
+        log.puts %x[./makerom -ciatocci '#{decfirst}' -o '#{cutn}-decrypted.cci']
+        check_decrypt(cutn, "cci")
+    end
+
+    remove_cache
 end
-
-Dir["*-decfirst.cia"].each do |decfirst|
-    cutn : String = decfirst.chomp "-decfirst.cia"
-
-    puts "Building decrypted #{cutn} CCI..."
-    log.puts %x[./makerom -ciatocci '#{decfirst}' -o '#{cutn}-decrypted.cci']
-    check_decrypt(cutn, "cci")
-end
-
-# cleanup
-puts "Removing cache..."
-Dir["*-decfirst.cia"].each do |fname| File.delete(fname) end
-Dir["*.ncch"].each do |fname| File.delete(fname) end
 
 log.flush
 log.close
