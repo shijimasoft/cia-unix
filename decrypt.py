@@ -37,7 +37,7 @@ ncsdPartitions = [
     "N3DSUpdateData",
     "UpdateData",
 ]
-tab = "    "
+tab = '\t'
 
 
 class ncchHdr(Structure):
@@ -212,8 +212,7 @@ def getNewkeyY(keyY, header, titleId):
         print((tab + "********************************"))
         for country in ["JP", "US", "GB", "KR", "TW", "AU", "NZ"]:
             r = urllib.request.urlopen(
-                "https://kagiya-ctr.cdn.nintendo.net/title/0x%s/ext_key?country=%s"
-                % (titleId, country),
+                f"https://kagiya-ctr.cdn.nintendo.net/title/0x{titleId}/ext_key?country={country}",
                 context=context,
             )
             if r.getcode() == 200:
@@ -238,7 +237,7 @@ def align(x, y):
 
 
 def parseCIA(fh):
-    print(('Parsing CIA in file "%s":' % os.path.basename(fh.name)))
+    print(f'Parsing CIA in file "{os.path.basename(fh.name)}":')
     fh.seek(0)
     (
         headerSize,
@@ -297,7 +296,7 @@ def parseCIA(fh):
 
 
 def parseNCSD(fh):
-    print(('Parsing NCSD in file "%s":' % os.path.basename(fh.name)))
+    print(f'Parsing NCSD in file "{os.path.basename(fh.name)}":')
     fh.seek(0)
     header = ncsdHdr()
     fh.readinto(header)
@@ -315,15 +314,13 @@ def parseNCSD(fh):
 
 
 def parseNCCH(fh, fsize, offs=0, idx=0, titleId="", standAlone=1, fromNcsd=0):
-    tab = "    " if not standAlone else "  "
+    tab = '\t' if not standAlone else "  "
     if not standAlone and fromNcsd:
-        print(("  Parsing %s NCCH" % ncsdPartitions[idx]))
+        print(f"  Parsing {ncsdPartitions[idx]} NCCH")
     elif not standAlone:
-        print(("  Parsing NCCH %d" % idx))
+        print(f"  Parsing NCCH {idx}")
     else:
-        print(('Parsing NCCH in file "%s":' % os.path.basename(fh.name)))
-    entries = 0
-    data = ""
+        print(f'Parsing NCCH in file "{os.path.basename(fh.name)}":')
     fh.seek(offs)
     tmp = fh.read(512)
     header = ncchHdr(tmp)
@@ -332,17 +329,11 @@ def parseNCCH(fh, fsize, offs=0, idx=0, titleId="", standAlone=1, fromNcsd=0):
     ncchKeyY = from_bytes(header.signature[:16])
     print((tab + "Product code: " + bytearray(header.productCode).decode().rstrip("\x00")))
     print((tab + "KeyY: %032X" % ncchKeyY))
-    print((tab + "Title ID: %s" % reverseCtypeArray(header.titleId)))
-    print((tab + "Format version: %d" % header.formatVersion))
+    print(tab + f"Title ID: {reverseCtypeArray(header.titleId)}")
+    print(tab + f"Format version: {header.formatVersion}")
     usesExtraCrypto = bytearray(header.flags)[3]
     if usesExtraCrypto:
-        print(
-            (
-                tab
-                + "Uses Extra NCCH crypto, keyslot 0x%X"
-                % {1: 37, 10: 24, 11: 27}[usesExtraCrypto]
-            )
-        )
+        print((tab + "Uses Extra NCCH crypto, keyslot 0x%X" % {1: 37, 10: 24, 11: 27}[usesExtraCrypto]))
     fixedCrypto = 0
     encrypted = 1
     if header.flags[7] & 1:
@@ -358,7 +349,7 @@ def parseNCCH(fh, fsize, offs=0, idx=0, titleId="", standAlone=1, fromNcsd=0):
         print((tab + "Uses 9.6 NCCH Seed crypto with KeyY: %032X" % keyY))
     print("")
     base = os.path.splitext(os.path.basename(fh.name))[0]
-    base += ".%s.ncch" % (idx if fromNcsd == 0 else ncsdPartitions[idx])
+    base += f".{(idx if fromNcsd == 0 else ncsdPartitions[idx])}.ncch"
     base = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), base)
     with open(base, "wb") as (f):
         fh.seek(offs)
@@ -413,9 +404,9 @@ def parseNCCH(fh, fsize, offs=0, idx=0, titleId="", standAlone=1, fromNcsd=0):
 def dumpSection(f, fh, offset, size, t, ctr, usesExtraCrypto, fixedCrypto, encrypted, keyYs):
     cryptoKeys = {0: 0, 1: 1, 10: 2, 11: 3}
     sections = ["ExHeader", "ExeFS", "RomFS"]
-    print((tab + "%s offset:  %08X" % (sections[(t - 1)], offset)))
-    print((tab + "%s counter: %s" % (sections[(t - 1)], hexlify(ctr))))
-    print((tab + "%s size: %d bytes" % (sections[(t - 1)], size)))
+    print(tab + f"{sections[(t - 1)]} offset:  " + ("%08X" % offset))
+    print(tab + f"{sections[(t - 1)]} counter: {hexlify(ctr)}")
+    print(tab + f"{sections[(t - 1)]} size: {size} bytes")
     tmp = offset - f.tell()
     if tmp > 0:
         f.write(fh.read(tmp))
