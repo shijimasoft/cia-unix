@@ -28,6 +28,9 @@ cia-unix/
 - [x] Decrypt .3ds
 - [ ] Rust/C++ 'decrypt.py' rewrite
 
+> **Warning**
+> Decryption with cia-unix may fail, when it happens it is suggested to decrypt roms directly on the 3DS.
+
 ## ⚡️ Build from source
 You’ll need the [Crystal compiler](https://crystal-lang.org/install/)
 
