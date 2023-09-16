@@ -120,13 +120,13 @@ class ciaReader:
         self.cipher = AES.new(
             titkey,
             AES.MODE_CBC,
-            to_bytes(cIdx, 2) + bytes(12),
+            to_bytes(cIdx, 2) + bytes(14),
         )
-
+        
     def seek(self, offs):
         if offs == 0:
             self.fhandle.seek(self.contentOff)
-            self.cipher.IV = (to_bytes(self.cIdx, 2) + bytes(12))
+            self.cipher.IV = (to_bytes(self.cIdx, 2) + bytes(14))
         else:
             self.fhandle.seek(self.contentOff + offs - 16)
             self.cipher.IV = self.fhandle.read(16)
@@ -153,8 +153,8 @@ def from_bytes(data):
 
 def to_bytes(n, length):
     h = "%x" % n
-    s = ("0" * (len(h) % 2) + h).zfill(length * 2).encode()
-    return s
+    s = ("0" * (len(h) % 2) + h).zfill(length * 2)
+    return bytes.fromhex(s)
 
 
 def scramblekey(keyX, keyY):
@@ -274,15 +274,15 @@ def parseCIA(fh):
     for i in range(contentCount):
         fh.seek(tmdOff + 2820 + 48 * i)
         cId, cIdx, cType, cSize = struct.unpack(">IHHQ", fh.read(16))
-        cEnc = 1
+        cEnc = True
         if cType & 1 == 0:
-            cEnc = 0
+            cEnc = False
         fh.seek(contentOffs + nextContentOffs)
         if cEnc:
             test = AES.new(
                 titkey,
                 AES.MODE_CBC,
-                to_bytes(cIdx, 2) + bytes(12),
+                to_bytes(cIdx, 2) + bytes(14),
             ).decrypt(fh.read(512))
         else:
             test = fh.read(512)
