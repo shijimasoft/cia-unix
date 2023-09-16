@@ -4,29 +4,35 @@ log : File = File.new "cia-unix.log", "w"
 log.puts Time.utc.to_s
 
 # dependencies check
-tools = ["python3", "./ctrtool", "./makerom", "decrypt.py"]
+tools = ["python3", "./ctrtool", "./makerom", "decrypt.py", "seeddb.bin"]
 tools.each do |tool|
-    if !File.exists? %x[which #{tool}].chomp
-        case tool
-        when "python3"
+    case tool
+    when "python3"
+        if !File.exists? %x[which #{tool}].chomp
             log.delete if File.exists? "cia-unix.log"
             puts "#{"Python 3.5 >=".colorize.mode(:bold)} not found. Install it before continue"
             abort "https://www.python.org/downloads/"
-        when "decrypt.py"
-            if !File.exists? "decrypt.py"
-                log.delete if File.exists? "cia-unix.log"
-                abort "#{tool.colorize.mode(:bold)} not found. Make sure it's located in the #{"same directory".colorize.mode(:underline)}" if !File.exists? tool
-            end
-        else
-            print "Some #{"tools".colorize.mode(:bold)} are missing, do you want to download them? (y/n): "
-            if ["y", "Y"].includes? gets.to_s
-                system "./dltools.sh"
-            else
-                log.delete if File.exists? "cia-unix.log"
-                abort "#{tool.lchop("./").colorize.mode(:bold)} not found. Make sure it's located in the #{"same directory".colorize.mode(:underline)}"
-            end
+        end
+    when "./ctrtool", "./makerom"
+        if !File.exists? %x[which #{tool}].chomp
+            log.delete if File.exists? "cia-unix.log"
+            download_dep
+            abort "#{tool.lchop("./").colorize.mode(:bold)} not found. Make sure it's located in the #{"same directory".colorize.mode(:underline)}" if !File.exists? tool
+        end
+    when "decrypt.py", "seeddb.bin"
+        if !File.exists? tool
+            log.delete if File.exists? "cia-unix.log"
+            download_dep
+            abort "#{tool.colorize.mode(:bold)} not found. Make sure it's located in the #{"same directory".colorize.mode(:underline)}" if !File.exists? tool
         end
     end
+end
+
+def download_dep
+    print "Some #{"tools".colorize.mode(:bold)} are missing, do you want to download them? (y/n): "
+    if ["y", "Y"].includes? gets.to_s
+        system "./dltools.sh"
+    end 
 end
 
 # roms presence check
