@@ -54,6 +54,11 @@ if [[ ! -f "decrypt.py" ]]; then
     wget https://raw.githubusercontent.com/shijimasoft/cia-unix/main/decrypt.py -q
 fi
 
+if [[ ! -f "seeddb.bin" ]]; then
+    echo " * Downloading ${BOLD}seeddb.bin${NORMAL}"
+    wget https://github.com/ihaveamac/3DS-rom-tools/raw/master/seeddb/seeddb.bin -q
+fi
+
 echo " * Cleaning up"
 rm -rf ctrtool-v$CTRTOOL_VER-*
 rm -rf makerom-v$MAKEROM_VER-*
