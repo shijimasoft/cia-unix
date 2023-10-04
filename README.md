@@ -25,7 +25,7 @@ cia-unix/
   - [x] Games
   - [x] Patch and DLCs
 - [x] Decrypt .3ds
-- [ ] Rust/C++ 'decrypt.py' rewrite
+- [ ] Rust `decrypt.py` rewrite (*[in progress](https://github.com/shijimasoft/ctrdecrypt)*)
 
 > **Warning**
 > Decryption with cia-unix may fail, when it happens it is suggested to decrypt roms directly on the 3DS.
