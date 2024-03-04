@@ -264,7 +264,7 @@ def parseCIA(fh):
     fh.seek(tikOff + 177 + 320)
     cmnkeyidx = struct.unpack("B", fh.read(1))[0]
     titkey = AES.new(
-        cmnkeys[cmnkeyidx],
+        unhexlify(cmnkeys[cmnkeyidx]),
         AES.MODE_CBC,
         tid + bytes(8),
     ).decrypt(enckey)
