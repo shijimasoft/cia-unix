@@ -121,7 +121,7 @@ Dir["*.cia"].each do |cia|
         log.puts %x[python3 decrypt.py '#{cia}']
         
         i : UInt8 = 0
-        Dir["*.ncch"].each do |ncch|
+        Dir["*.ncch"].sort.each do |ncch|
             args += "-i '#{ncch}:#{i}:#{i}' "
             i += 1
         end
