@@ -352,8 +352,6 @@ def parseNCCH(fh, fsize, offs=0, idx=0, titleId="", standAlone=1, fromNcsd=0):
     base += f".{(idx if fromNcsd == 0 else ncsdPartitions[idx])}.ncch"
     base = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), base)
     with open(base, "wb") as (f):
-        fh.seek(offs)
-        tmp = fh.read(512)
         tmp = tmp[:399] + chr(tmp[399] & 2 | 4).encode() + tmp[400:]
         f.write(tmp)
         if header.exhdrSize != 0:
