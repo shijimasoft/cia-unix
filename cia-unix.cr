@@ -113,7 +113,7 @@ Dir["*.cia"].each do |cia|
     puts "Decrypting: #{cia.colorize.mode(:bold)}..."
     cutn : String = cia.chomp ".cia"
     args = ""
-    content = %x[./ctrtool '#{cia}']
+    content = %x[./ctrtool --seeddb=seeddb.bin '#{cia}']
 
     # game
     if content.match /T.*d.*00040000/
