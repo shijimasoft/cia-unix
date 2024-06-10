@@ -1,0 +1,39 @@
+name: cia-unix build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  release:
+    strategy:
+      matrix:
+        include:
+        # Linux x86-64
+          - os: ubuntu-latest
+            artifact_name: ${{ github.event.repository.name }}
+            asset_name: ${{ github.event.repository.name }}-linux-x86_64
+        # macOS x86-64
+          - os: macos-13
+            artifact_name: ${{ github.event.repository.name }}
+            asset_name: ${{ github.event.repository.name }}-macos-x86_64
+        # macOS arm64
+          - os: macos-latest
+            artifact_name: ${{ github.event.repository.name }}
+            asset_name: ${{ github.event.repository.name }}-macos-arm64
+    runs-on: ${{ matrix.os }}
+    container:
+      image: crystallang/crystal
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build release
+      run: |
+        crystal build ${{ matrix.artifact_name }}.cr --release --no-debug
+        strip ${{ matrix.artifact_name }}
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4.3.3
+      with:
+        name: ${{ matrix.asset_name }}
+        path: ${{ matrix.artifact_name}}
