@@ -1,43 +1,38 @@
 # cia-unix
 
-*Decrypt CIA roms in UNIX environments* 🪐
-
-#### Requirements
-* [Python 2.7](https://www.python.org/downloads/release/python-2718/)
-* [PyCrypto](https://pypi.org/project/pycrypto/) 
-  * `pip install pycrypto` or `easy_install pycrypto`
-
-> **Note**
-> A new Python 3 (unstable) version has been released, you can find the experimental code [here](https://github.com/shijimasoft/cia-unix/tree/experimental).
+*Decrypt CIA and 3DS roms in UNIX environments (Linux and macOS)*
 
 ```
 cia-unix/
 ├─ cia-unix
-├─ decrypt.py
+├─ ctrdecrypt
 ├─ ctrtool
 ├─ makerom
 └─ Encrypted Game.cia
 ```
-**ctrtool**, **makerom** and **decrypt.py** can be downloaded with `dltools.sh`
 
-## 📋 Roadmap
+**ctrtool**, **makerom** and [**ctrdecrypt**](https://github.com/shijimasoft/ctrdecrypt) can be downloaded with `dltools.sh`
+
+## ✅ Roadmap
 - [x] Decrypt .cia
   - [x] Games
   - [x] Patch and DLCs
 - [x] Decrypt .3ds
-- [ ] Rust `decrypt.py` rewrite (*[in progress](https://github.com/shijimasoft/ctrdecrypt)*)
+- [x] Rust [`decrypt.py`](https://github.com/shijimasoft/cia-unix/blob/old-python3/decrypt.py) rewrite (ctrdecrypt)
 
-> **Warning**
+> [!WARNING]
 > Decryption with cia-unix may fail, when it happens it is suggested to decrypt roms directly on the 3DS.
+
+The old _python 3_ version can be found [here](https://github.com/shijimasoft/cia-unix/tree/old-python3).
 
 ## ⚡️ Build from source
 You’ll need the [Crystal compiler](https://crystal-lang.org/install/)
 
-```
+```bash
 crystal build cia-unix.cr --release --no-debug
 ```
 
-Dependencies can be compiled with [makerom](https://github.com/3DSGuy/Project_CTR/tree/master/makerom) and [ctrtool](https://github.com/3DSGuy/Project_CTR/tree/master/ctrtool) make files
+Dependencies can be compiled with [makerom](https://github.com/3DSGuy/Project_CTR/tree/master/makerom) and [ctrtool](https://github.com/3DSGuy/Project_CTR/tree/master/ctrtool) make files.
 
 ## Contributors
 ctrtool and makerom are from [3DSGuy repository](https://github.com/3DSGuy/Project_CTR)

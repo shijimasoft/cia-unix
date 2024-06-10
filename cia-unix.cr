@@ -4,22 +4,16 @@ log : File = File.new "cia-unix.log", "w"
 log.puts Time.utc.to_s
 
 # dependencies check
-tools = ["python2.7", "./ctrtool", "./makerom", "decrypt.py", "seeddb.bin"]
+tools = ["./ctrtool", "./ctrdecrypt", "./makerom", "seeddb.bin"]
 tools.each do |tool|
     case tool
-    when "python2.7"
-        if !File.exists? %x[which #{tool}].chomp
-            log.delete if File.exists? "cia-unix.log"
-            puts "#{"Python 2.7".colorize.mode(:bold)} not found. Install it before continue"
-            abort "https://www.python.org/download/releases/2.7/"
-        end
-    when "./ctrtool", "./makerom"
+    when "./ctrtool", "./ctrdecrypt", "./makerom"
         if !File.exists? %x[which #{tool}].chomp
             log.delete if File.exists? "cia-unix.log"
             download_dep
             abort "#{tool.lchop("./").colorize.mode(:bold)} not found. Make sure it's located in the #{"same directory".colorize.mode(:underline)}" if !File.exists? tool
         end
-    when "decrypt.py", "seeddb.bin"
+    when "seeddb.bin"
         if !File.exists? tool
             log.delete if File.exists? "cia-unix.log"
             download_dep
@@ -77,7 +71,7 @@ Dir["*.3ds"].each do |ds|
     dsn : String = ds.chomp ".3ds"
 
     puts "Decrypting: #{ds.colorize.mode(:bold)}..."
-    log.puts %x[python2.7 decrypt.py '#{ds}']
+    log.puts %x[./ctrdecrypt '#{ds}']
 
     Dir["#{dsn}.*.ncch"].each do |ncch|
         case ncch
@@ -118,7 +112,7 @@ Dir["*.cia"].each do |cia|
     # game
     if content.match /T.*d.*00040000/
         puts "CIA Type: Game"
-        log.puts %x[python2.7 decrypt.py '#{cia}']
+        log.puts %x[./ctrdecrypt '#{cia}']
         
         i : UInt8 = 0
         Dir["*.ncch"].sort.each do |ncch|
@@ -129,7 +123,7 @@ Dir["*.cia"].each do |cia|
     # patch
     elsif content.match /T.*d.*0004000(e|E)/
         puts "CIA Type: #{"Patch".colorize.mode(:bold)}"
-        log.puts %x[python2.7 decrypt.py '#{cia}']
+        log.puts %x[./ctrdecrypt '#{cia}']
 
         patch_parts : Int32 = Dir["#{cutn}.*.ncch"].size
         args = gen_args(cutn, patch_parts)
@@ -139,7 +133,7 @@ Dir["*.cia"].each do |cia|
     # dlc
     elsif content.match /T.*d.*0004008(c|C)/
         puts "CIA Type: #{"DLC".colorize.mode(:bold)}"
-        log.puts %x[python2.7 decrypt.py '#{cia}']
+        log.puts %x[./ctrdecrypt '#{cia}']
 
         dlc_parts : Int32 = Dir["#{cutn}.*.ncch"].size
         args = gen_args(cutn, dlc_parts)

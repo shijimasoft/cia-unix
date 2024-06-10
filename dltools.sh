@@ -4,12 +4,18 @@ SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 BOLD=$(tput bold)
 NORMAL=$(tput sgr0)
 
+CTRDECRYPT_VER=1.1.0
 CTRTOOL_VER=1.2.0
 MAKEROM_VER=0.18.4
 
 # Darwin
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # Apple Silicon
+    echo " * Downloading ${BOLD}ctrdecrypt${NORMAL}"
+    wget "https://github.com/shijimasoft/ctrdecrypt/releases/download/v${CTRDECRYPT_VER}/ctrdecrypt-macos-universal.zip" -q
+    echo " * Extracting ${BOLD}ctrdecrypt${NORMAL}"
+    unzip -qq "ctrdecrypt-macos-universal.zip" -d "ctrdecrypt-macos-universal"
+    mv "ctrdecrypt-macos-universal/ctrdecrypt" "${SCRIPT_DIR}/ctrdecrypt"
     if [[ $(uname -m) == 'arm64' ]]; then
         echo " * Downloading ${BOLD}ctrtool${NORMAL}"
         wget "https://github.com/3DSGuy/Project_CTR/releases/download/ctrtool-v${CTRTOOL_VER}/ctrtool-v${CTRTOOL_VER}-macos_arm64.zip" -q
@@ -37,6 +43,11 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 
 # Linux (x86_64)
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    echo " * Downloading ${BOLD}ctrdecrypt${NORMAL}"
+    wget "https://github.com/shijimasoft/ctrdecrypt/releases/download/v${CTRDECRYPT_VER}/ctrdecrypt-linux-x86_64.zip" -q
+    echo " * Extracting ${BOLD}ctrdecrypt${NORMAL}"
+    unzip -qq "ctrdecrypt-linux-x86_64.zip" -d "ctrdecrypt-linux-x86_64"
+    mv "ctrdecrypt-linux-x86_64/ctrdecrypt" "${SCRIPT_DIR}/ctrdecrypt"
     echo " * Downloading ${BOLD}ctrtool${NORMAL}"
     wget "https://github.com/3DSGuy/Project_CTR/releases/download/ctrtool-v${CTRTOOL_VER}/ctrtool-v${CTRTOOL_VER}-ubuntu_x86_64.zip" -q
     echo " * Extracting ${BOLD}ctrtool${NORMAL}"
@@ -49,20 +60,16 @@ elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     mv "makerom-v${MAKEROM_VER}-ubuntu_x86_64/makerom" "${SCRIPT_DIR}/makerom"
 fi
 
-if [[ ! -f "decrypt.py" ]]; then
-    echo " * Downloading ${BOLD}decrypt.py${NORMAL}"
-    wget "https://raw.githubusercontent.com/shijimasoft/cia-unix/main/decrypt.py" -q
-fi
-
 if [[ ! -f "seeddb.bin" ]]; then
     echo " * Downloading ${BOLD}seeddb.bin${NORMAL}"
     wget "https://github.com/ihaveamac/3DS-rom-tools/raw/master/seeddb/seeddb.bin" -q
 fi
 
 echo " * Cleaning up"
+rm -rf "ctrdecrypt-"*
 rm -rf "ctrtool-v${CTRTOOL_VER}-"*
 rm -rf "makerom-v${MAKEROM_VER}-"*
 
-chmod +x ctrtool makerom
+chmod +x ctrdecrypt ctrtool makerom
 
 echo
