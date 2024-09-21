@@ -292,7 +292,7 @@ def parseCIA(fh):
         fh.seek(contentOffs + nextContentOffs)
         ciaHandle = ciaReader(fh, cEnc, titkey, cIdx, contentOffs + nextContentOffs)
         nextContentOffs = nextContentOffs + align(cSize, 64)
-        parseNCCH(ciaHandle, cSize, 0, cIdx, tid, 0, 0)
+        parseNCCH(ciaHandle, cSize, 0, cIdx, cId, tid, 0, 0)
 
 
 def parseNCSD(fh):
@@ -307,13 +307,14 @@ def parseNCSD(fh):
                 header.offset_sizeTable[i].size * mediaUnitSize,
                 header.offset_sizeTable[i].offset * mediaUnitSize,
                 i,
+                i,
                 reverseCtypeArray(header.titleId),
                 0,
                 1,
             )
 
 
-def parseNCCH(fh, fsize, offs=0, idx=0, titleId="", standAlone=1, fromNcsd=0):
+def parseNCCH(fh, fsize, offs=0, idx=0, contentId=0, titleId="", standAlone=1, fromNcsd=0):
     tab = '\t' if not standAlone else "  "
     if not standAlone and fromNcsd:
         print(f"  Parsing {ncsdPartitions[idx]} NCCH")
@@ -331,6 +332,7 @@ def parseNCCH(fh, fsize, offs=0, idx=0, titleId="", standAlone=1, fromNcsd=0):
     print((tab + "KeyY: %032X" % ncchKeyY))
     print(tab + f"Title ID: {reverseCtypeArray(header.titleId)}")
     print(tab + f"Format version: {header.formatVersion}")
+    print(tab + f"Content Id: %08X" % contentId)
     usesExtraCrypto = bytearray(header.flags)[3]
     if usesExtraCrypto:
         print((tab + "Uses Extra NCCH crypto, keyslot 0x%X" % {1: 37, 10: 24, 11: 27}[usesExtraCrypto]))
@@ -349,7 +351,7 @@ def parseNCCH(fh, fsize, offs=0, idx=0, titleId="", standAlone=1, fromNcsd=0):
         print((tab + "Uses 9.6 NCCH Seed crypto with KeyY: %032X" % keyY))
     print("")
     base = os.path.splitext(os.path.basename(fh.name))[0]
-    base += f".{(idx if fromNcsd == 0 else ncsdPartitions[idx])}.ncch"
+    base += f".{(idx if fromNcsd == 0 else ncsdPartitions[idx])}.%08X.ncch" % contentId
     base = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), base)
     with open(base, "wb") as (f):
         tmp = tmp[:399] + chr(tmp[399] & 2 | 4).encode() + tmp[400:]
