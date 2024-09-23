@@ -1,4 +1,5 @@
 import os, sys, struct
+import urllib.request, urllib.parse, urllib.error
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
 from hashlib import sha256
@@ -7,7 +8,6 @@ from binascii import hexlify, unhexlify
 import ssl
 
 context = ssl._create_unverified_context()
-import urllib.request, urllib.parse, urllib.error
 
 cmnkeys = [
     b"64c5fd55dd3ad988325baaec5243db98",
@@ -40,7 +40,7 @@ ncsdPartitions = [
 tab = '\t'
 
 
-class ncchHdr(Structure):
+class NcchHdr(Structure):
     _fields_ = [
         ("signature", c_uint8 * 256),
         ("magic", c_char * 4),
@@ -81,36 +81,42 @@ class ncchHdr(Structure):
         pass
 
 
-class ncchSection:
+class NcchSection:
     exheader = 1
     exefs = 2
     romfs = 3
 
 
-class ncch_offsetsize(Structure):
+class NcchOffsetSize(Structure):
     _fields_ = [("offset", c_uint32), ("size", c_uint32)]
 
 
-class ncsdHdr(Structure):
+class NcsdHdr(Structure):
     _fields_ = [
         ("signature", c_uint8 * 256),
         ("magic", c_char * 4),
         ("mediaSize", c_uint32),
         ("titleId", c_uint8 * 8),
         ("padding0", c_uint8 * 16),
-        ("offset_sizeTable", ncch_offsetsize * 8),
+        ("offset_sizeTable", NcchOffsetSize * 8),
         ("padding1", c_uint8 * 40),
         ("flags", c_uint8 * 8),
         ("ncchIdTable", c_uint8 * 64),
         ("padding2", c_uint8 * 48),
     ]
 
+    def __new__(cls, buf):
+        return cls.from_buffer_copy(buf)
+
+    def __init__(self, data):
+        pass
+
 
 class SeedError(Exception):
     pass
 
 
-class ciaReader:
+class CiaReader:
     def __init__(self, fhandle, encrypted, titkey, cIdx, contentOff):
         self.fhandle = fhandle
         self.encrypted = encrypted
@@ -171,7 +177,7 @@ def scramblekey(keyX, keyY):
 
 
 def reverseCtypeArray(ctypeArray):
-    return ("").join("%02X" % x for x in ctypeArray[::-1])
+    return "".join("%02X" % x for x in ctypeArray[::-1])
 
 
 def getNcchAesCounter(header, t):
@@ -181,15 +187,15 @@ def getNcchAesCounter(header, t):
         counter[8:9] = chr(t).encode()
     elif header.formatVersion == 1:
         x = 0
-        if t == ncchSection.exheader:
+        if t == NcchSection.exheader:
             x = 512
-        if t == ncchSection.exefs:
+        if t == NcchSection.exefs:
             x = header.exefsOffset * mediaUnitSize
-        if t == ncchSection.romfs:
+        if t == NcchSection.romfs:
             x = header.romfsOffset * mediaUnitSize
         counter[:8] = bytearray(header.titleId)
         for i in range(4):
-            counter[12 + i] = chr(x >> (3 - i) * 8 & 255)
+            counter[12 + i:13 + i] = chr(x >> (3 - i) * 8 & 255)
 
     return bytes(counter)
 
@@ -198,7 +204,7 @@ def getNewkeyY(keyY, header, titleId):
     seeds = {}
     seedif = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), "seeddb.bin")
     if os.path.exists(seedif):
-        with open(seedif, "rb") as (seeddb):
+        with open(seedif, "rb") as seeddb:
             seedcount = struct.unpack("<I", seeddb.read(4))[0]
             seeddb.read(12)
             for i in range(seedcount):
@@ -211,18 +217,22 @@ def getNewkeyY(keyY, header, titleId):
         print((tab + "Couldn't find seed in seeddb, checking online..."))
         print((tab + "********************************"))
         for country in ["JP", "US", "GB", "KR", "TW", "AU", "NZ"]:
-            r = urllib.request.urlopen(
-                f"https://kagiya-ctr.cdn.nintendo.net/title/0x{titleId}/ext_key?country={country}",
-                context=context,
-            )
-            if r.getcode() == 200:
-                seeds[titleId] = r.read()
-                break
+            try:
+                id_str = titleId.decode("ASCII")
+                r = urllib.request.urlopen(
+                    f"https://kagiya-ctr.cdn.nintendo.net/title/0x{id_str}/ext_key?country={country}",
+                    context=context,
+                )
+                if r.getcode() == 200:
+                    seeds[titleId] = r.read()
+                    break
+            except urllib.error.HTTPError:
+                pass
 
     if titleId in seeds:
         seedcheck = struct.unpack(">I", header.seedcheck)[0]
 
-        if (int(sha256(seeds[titleId] + unhexlify(titleId)[::-1]).hexdigest()[:8], 16) == seedcheck):
+        if int(sha256(seeds[titleId] + unhexlify(titleId)[::-1]).hexdigest()[:8], 16) == seedcheck:
             keystr = sha256(to_bytes(keyY, 16) + seeds[titleId]).hexdigest()[:32]
             newkeyY = unhexlify(keystr)
             return from_bytes(newkeyY)
@@ -290,7 +300,7 @@ def parseCIA(fh):
             print("  Problem parsing CIA content, skipping. Sorry about that :/\n")
             continue
         fh.seek(contentOffs + nextContentOffs)
-        ciaHandle = ciaReader(fh, cEnc, titkey, cIdx, contentOffs + nextContentOffs)
+        ciaHandle = CiaReader(fh, cEnc, titkey, cIdx, contentOffs + nextContentOffs)
         nextContentOffs = nextContentOffs + align(cSize, 64)
         parseNCCH(ciaHandle, cSize, 0, cIdx, cId, tid, 0, 0)
 
@@ -298,8 +308,8 @@ def parseCIA(fh):
 def parseNCSD(fh):
     print(f'Parsing NCSD in file "{os.path.basename(fh.name)}":')
     fh.seek(0)
-    header = ncsdHdr()
-    fh.readinto(header)
+    buffer = fh.read(512)
+    header = NcsdHdr(buffer)
     for i in range(len(header.offset_sizeTable)):
         if header.offset_sizeTable[i].offset:
             parseNCCH(
@@ -324,7 +334,7 @@ def parseNCCH(fh, fsize, offs=0, idx=0, contentId=0, titleId="", standAlone=1, f
         print(f'Parsing NCCH in file "{os.path.basename(fh.name)}":')
     fh.seek(offs)
     tmp = fh.read(512)
-    header = ncchHdr(tmp)
+    header = NcchHdr(tmp)
     if titleId == "":
         titleId = reverseCtypeArray(header.programId)
     ncchKeyY = from_bytes(header.signature[:16])
@@ -353,17 +363,17 @@ def parseNCCH(fh, fsize, offs=0, idx=0, contentId=0, titleId="", standAlone=1, f
     base = os.path.splitext(os.path.basename(fh.name))[0]
     base += f".{(idx if fromNcsd == 0 else ncsdPartitions[idx])}.%08X.ncch" % contentId
     base = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), base)
-    with open(base, "wb") as (f):
+    with open(base, "wb") as f:
         tmp = tmp[:399] + chr(tmp[399] & 2 | 4).encode() + tmp[400:]
         f.write(tmp)
         if header.exhdrSize != 0:
-            counter = getNcchAesCounter(header, ncchSection.exheader)
+            counter = getNcchAesCounter(header, NcchSection.exheader)
             dumpSection(
                 f,
                 fh,
                 512,
                 header.exhdrSize * 2,
-                ncchSection.exheader,
+                NcchSection.exheader,
                 counter,
                 usesExtraCrypto,
                 fixedCrypto,
@@ -371,13 +381,13 @@ def parseNCCH(fh, fsize, offs=0, idx=0, contentId=0, titleId="", standAlone=1, f
                 [ncchKeyY, keyY],
             )
         if header.exefsSize != 0:
-            counter = getNcchAesCounter(header, ncchSection.exefs)
+            counter = getNcchAesCounter(header, NcchSection.exefs)
             dumpSection(
                 f,
                 fh,
                 header.exefsOffset * mediaUnitSize,
                 header.exefsSize * mediaUnitSize,
-                ncchSection.exefs,
+                NcchSection.exefs,
                 counter,
                 usesExtraCrypto,
                 fixedCrypto,
@@ -385,13 +395,13 @@ def parseNCCH(fh, fsize, offs=0, idx=0, contentId=0, titleId="", standAlone=1, f
                 [ncchKeyY, keyY],
             )
         if header.romfsSize != 0:
-            counter = getNcchAesCounter(header, ncchSection.romfs)
+            counter = getNcchAesCounter(header, NcchSection.romfs)
             dumpSection(
                 f,
                 fh,
                 header.romfsOffset * mediaUnitSize,
                 header.romfsSize * mediaUnitSize,
-                ncchSection.romfs,
+                NcchSection.romfs,
                 counter,
                 usesExtraCrypto,
                 fixedCrypto,
@@ -420,7 +430,7 @@ def dumpSection(f, fh, offset, size, t, ctr, usesExtraCrypto, fixedCrypto, encry
             f.write(fh.read(sizeleft))
         return
     key0x2C = to_bytes(scramblekey(keys[0][0], keyYs[0]), 16)
-    if t == ncchSection.exheader:
+    if t == NcchSection.exheader:
         key = key0x2C
         if fixedCrypto:
             key = to_bytes(keys[1][(fixedCrypto - 1)], 16)
@@ -430,7 +440,7 @@ def dumpSection(f, fh, offset, size, t, ctr, usesExtraCrypto, fixedCrypto, encry
             counter=Counter.new(128, initial_value=from_bytes(ctr)),
         )
         f.write(cipher.decrypt(fh.read(size)))
-    if t == ncchSection.exefs:
+    if t == NcchSection.exefs:
         key = key0x2C
         if fixedCrypto:
             key = to_bytes(keys[1][(fixedCrypto - 1)], 16)
@@ -451,13 +461,13 @@ def dumpSection(f, fh, offset, size, t, ctr, usesExtraCrypto, fixedCrypto, encry
             for i in range(10):
                 fname, off, size = struct.unpack("<8sII", exetmp[i * 16 : (i + 1) * 16])
                 off += 512
-                if fname.strip(b"\x00") not in ("icon", "banner"):
+                if fname.strip(b"\x00") not in (b"icon", b"banner"):
                     exetmp = (
                         exetmp[:off] + exetmp2[off : off + size] + exetmp[off + size :]
                     )
 
         f.write(exetmp)
-    if t == ncchSection.romfs:
+    if t == NcchSection.romfs:
         key = to_bytes(scramblekey(keys[0][cryptoKeys[usesExtraCrypto]], keyYs[1]), 16)
         if fixedCrypto:
             key = to_bytes(keys[1][(fixedCrypto - 1)], 16)
@@ -474,31 +484,31 @@ def dumpSection(f, fh, offset, size, t, ctr, usesExtraCrypto, fixedCrypto, encry
         if sizeleft > 0:
             f.write(cipher.decrypt(fh.read(sizeleft)))
 
+if __name__ == "__main__" or __name__ == "decrypt":
+    if len(sys.argv) < 2:
+        print("usage: decrypt.py *filepath*")
+        sys.exit()
 
-if len(sys.argv) < 2:
-    print("usage: decrypt.py *file*")
-    sys.exit()
+    if os.path.exists(sys.argv[1]):
+        file = sys.argv[1]
+        with open(file, "rb") as fh:
+            fh.seek(256)
+            magic = fh.read(4)
 
-if os.path.exists(sys.argv[1]):
-    file = sys.argv[1] 
-    with open(file, "rb") as (fh):
-        fh.seek(256)
-        magic = fh.read(4)
-
-        if magic == b"NCSD":
-            result = parseNCSD(fh)
-            print("")
-        elif magic == b"NCCH":
-            fh.seek(0, 2)
-            result = parseNCCH(fh, fh.tell())
-            print("")
-        elif fh.name.lower().endswith(".cia"):
-            fh.seek(0)
-            if fh.read(4) == b"  \x00\x00":
-                parseCIA(fh)
+            if magic == b"NCSD":
+                parseNCSD(fh)
                 print("")
-else:
-    print("Input file does not exist")
-    sys.exit()
+            elif magic == b"NCCH":
+                fh.seek(0, 2)
+                parseNCCH(fh, fh.tell())
+                print("")
+            elif fh.name.lower().endswith(".cia"):
+                fh.seek(0)
+                if fh.read(4) == b"  \x00\x00":
+                    parseCIA(fh)
+                    print("")
+    else:
+        print("Input file does not exist")
+        sys.exit()
 
-print("Partitions extracted")
+    print("Partitions extracted")
