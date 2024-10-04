@@ -42,7 +42,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     fi
 
 # Linux (x86_64)
-elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+elif [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "linux" ]]; then
     echo " * Downloading ${BOLD}ctrdecrypt${NORMAL}"
     wget "https://github.com/shijimasoft/ctrdecrypt/releases/download/v${CTRDECRYPT_VER}/ctrdecrypt-linux-x86_64.zip" -q
     echo " * Extracting ${BOLD}ctrdecrypt${NORMAL}"
