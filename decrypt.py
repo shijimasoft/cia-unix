@@ -377,6 +377,7 @@ def parseNCCH(fh, fsize, offs=0, idx=0, contentId=0, titleId="", standAlone=1, f
                 counter,
                 usesExtraCrypto,
                 fixedCrypto,
+                useSeedCrypto,
                 encrypted,
                 [ncchKeyY, keyY],
             )
@@ -391,6 +392,7 @@ def parseNCCH(fh, fsize, offs=0, idx=0, contentId=0, titleId="", standAlone=1, f
                 counter,
                 usesExtraCrypto,
                 fixedCrypto,
+                useSeedCrypto,
                 encrypted,
                 [ncchKeyY, keyY],
             )
@@ -405,13 +407,14 @@ def parseNCCH(fh, fsize, offs=0, idx=0, contentId=0, titleId="", standAlone=1, f
                 counter,
                 usesExtraCrypto,
                 fixedCrypto,
+                useSeedCrypto,
                 encrypted,
                 [ncchKeyY, keyY],
             )
     print("")
 
 
-def dumpSection(f, fh, offset, size, t, ctr, usesExtraCrypto, fixedCrypto, encrypted, keyYs):
+def dumpSection(f, fh, offset, size, t, ctr, usesExtraCrypto, fixedCrypto, useSeedCrypto, encrypted, keyYs):
     cryptoKeys = {0: 0, 1: 1, 10: 2, 11: 3}
     sections = ["ExHeader", "ExeFS", "RomFS"]
     print(tab + f"{sections[(t - 1)]} offset:  " + ("%08X" % offset))
@@ -451,7 +454,7 @@ def dumpSection(f, fh, offset, size, t, ctr, usesExtraCrypto, fixedCrypto, encry
         )
         exedata = fh.read(size)
         exetmp = cipher.decrypt(exedata)
-        if usesExtraCrypto:
+        if usesExtraCrypto or useSeedCrypto:
             extraCipher = AES.new(
                 to_bytes(scramblekey(keys[0][cryptoKeys[usesExtraCrypto]], keyYs[1]), 16),
                 AES.MODE_CTR,
