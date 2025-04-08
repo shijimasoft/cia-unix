@@ -15,6 +15,10 @@ jobs:
           - os: ubuntu-latest
             artifact_name: ${{ github.event.repository.name }}
             asset_name: ${{ github.event.repository.name }}-linux-x86_64
+        # Linux arm64
+          - os: ubuntu-22.04-arm
+            artifact_name: ${{ github.event.repository.name }}
+            asset_name: ${{ github.event.repository.name }}-linux-arm64
         # macOS x86-64
           - os: macos-13
             artifact_name: ${{ github.event.repository.name }}
