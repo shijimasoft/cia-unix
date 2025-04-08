@@ -141,7 +141,7 @@ Dir["*.cia"].each do |cia|
         log.puts %x[./makerom -f cia -dlc -ignoresign -target p -o '#{cutn} (DLC)-decrypted.cia' #{args}]
         check_decrypt("#{cutn} (DLC)", "cia")
     else
-        abort "Unsupported CIA"
+        puts "Unsupported CIA"
     end
 
     Dir["*-decfirst.cia"].each do |decfirst|
