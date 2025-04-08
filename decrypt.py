@@ -49,7 +49,7 @@ class NcchHdr(Structure):
         ("makerCode", c_uint16),
         ("formatVersion", c_uint8),
         ("formatVersion2", c_uint8),
-        ("seedcheck", c_char * 4),
+        ("seedcheck", c_uint8 * 4),
         ("programId", c_uint8 * 8),
         ("padding1", c_uint8 * 16),
         ("logoHash", c_uint8 * 32),
@@ -349,7 +349,7 @@ def parseNCCH(fh, fsize, offs=0, idx=0, contentId=0, titleId="", standAlone=1, f
     fixedCrypto = 0
     encrypted = 1
     if header.flags[7] & 1:
-        fixedCrypto = 2 if header.titleId[3] & 16 else 1
+        fixedCrypto = 2 if bytearray(header.titleId[::-1])[3] & 16 else 1
         print((tab + "Uses fixed-key crypto"))
     if header.flags[7] & 4:
         encrypted = 0
@@ -357,7 +357,7 @@ def parseNCCH(fh, fsize, offs=0, idx=0, contentId=0, titleId="", standAlone=1, f
     useSeedCrypto = header.flags[7] & 32 != 0
     keyY = ncchKeyY
     if useSeedCrypto:
-        keyY = getNewkeyY(ncchKeyY, header, hexlify(titleId))
+        keyY = getNewkeyY(ncchKeyY, header, hexlify(unhexlify(titleId)))
         print((tab + "Uses 9.6 NCCH Seed crypto with KeyY: %032X" % keyY))
     print("")
     base = os.path.splitext(os.path.basename(fh.name))[0]
